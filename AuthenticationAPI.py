@@ -112,6 +112,43 @@ def get_user():
         return jsonify({'message': 'User not found'}), 404
 
 
+def fetch_questions():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT id, question, option1, option2, option3, option4, option5 FROM data")
+        questions_data = cur.fetchall()
+        cur.close()
 
+        if not questions_data:
+            return {'message': 'No questions found'}, 404
+
+        questions_list = []
+        for question_data in questions_data:
+            question = {
+                'id': question_data[0],
+                'question': question_data[1],
+                'options': [option for option in question_data[2:] if option]  # Exclude empty options
+            }
+            questions_list.append(question)
+
+        return questions_list
+
+    except mysql.connection.Error as e:
+        return {'message': f"Database error: {str(e)}"}, 500
+
+    except Exception as e:
+        return {'message': f"An error occurred: {str(e)}"}, 500
+
+
+# Route to fetch and display questions and options
+@app.route('/fetch_questions', methods=['GET'])
+def display_questions():
+    questions = fetch_questions()
+
+    if isinstance(questions, list):
+        return jsonify({'questions': questions}), 200
+    else:
+        return jsonify(questions), 500
+    
 if __name__ == '__main__':
     app.run(host='192.168.1.6')
