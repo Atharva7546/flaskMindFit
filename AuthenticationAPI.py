@@ -2,8 +2,16 @@ from flask import Flask, request, jsonify
 from flask_bcrypt import Bcrypt
 from flask_mysqldb import MySQL
 import re
+from flask import Flask, request, jsonify
+from tensorflow.keras.models import load_model
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
+import numpy as np
+
+model = load_model('model.h5')
+sc = StandardScaler()
 app = Flask(__name__)
+
 bcrypt = Bcrypt(app)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
@@ -150,5 +158,35 @@ def display_questions():
     else:
         return jsonify(questions), 500
     
+
+# @app.route('/predict', methods=['POST'])
+# def predict():
+#     # label_encoders = []
+#     # for col in range(X.shape[1]):
+#     #     if isinstance(X[0, col], str):
+#     #         label_encoder = LabelEncoder()
+#     #         X[:, col] = label_encoder.fit_transform(X[:, col])
+#     #         label_encoders.append(label_encoder)
+
+    
+#     try:
+#         data = request.get_json()
+        
+#         # Perform preprocessing steps to match the model's requirements
+#         processed_data = np.array([data])  # Assuming 'data' is a single sample
+#         for col, label_encoder in enumerate(label_encoders):
+#             if isinstance(processed_data[0, col], str):
+#                 processed_data[0, col] = label_encoder.transform([processed_data[0, col]])
+        
+#         processed_data = sc.transform(processed_data)
+        
+#         # Perform prediction
+#         predictions = model.predict(processed_data)
+#         result = {'prediction': predictions.tolist()}  # Convert predictions to a list
+        
+#         return jsonify(result), 200
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+    
 if __name__ == '__main__':
-    app.run(host='192.168.1.6')
+    app.run(host='192.168.1.8')
