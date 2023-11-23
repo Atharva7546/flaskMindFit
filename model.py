@@ -21,6 +21,11 @@ for col in range(X.shape[1]):
         label_encoder = LabelEncoder()
         X[:, col] = label_encoder.fit_transform(X[:, col])
         label_encoders.append(label_encoder)
+import pickle
+with open('encoders.pickle','wb') as f:
+    pickle.dump(label_encoders,f)
+
+# exit()
 
 # Debugging: Print unique values in each column to identify unexpected values
 for col in range(X.shape[1]):
@@ -34,6 +39,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 sc = StandardScaler()
 X_train = sc.fit_transform(X_train)
 X_test = sc.transform(X_test)
+with open('scaler.pickle','wb') as f:
+    pickle.dump(sc,f)
 
 # Initialize the ANN
 model = Sequential()
@@ -45,7 +52,7 @@ model.add(Dense(units=64, activation='relu', input_dim=X_train.shape[1]))
 model.add(Dense(units=64, activation='relu'))
 
 # Adding the output layer
-model.add(Dense(units=len(np.unique(y)), activation='linear'))
+model.add(Dense(units=1, activation='linear'))
 
 # Compiling the ANN
 optimizer=keras.optimizers.Adam(learning_rate=3e-4)
@@ -63,7 +70,11 @@ mc=ModelCheckpoint(filepath='model-{epoch:03d}-{loss:.4f}-{val_loss:.4f}.h5',sav
 model.fit(X_train, y_train, batch_size=32, epochs=5000, validation_split=0.2, callbacks=[tb,es,rlr,mc], shuffle=True)
 
 # Predicting the Test set results
-y_pred = model.predict(X_test)
-y_pred = np.argmax(y_pred, axis=1)
+# y_pred = model.predict(X_test)
+# y_pred = np.argmax(y_pred, axis=1)
 
 model.save('model.h5')
+
+import pickle
+with open('encoders.pickle','wb') as f:
+    pickle.dump(label_encoders,f)

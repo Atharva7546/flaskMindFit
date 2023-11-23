@@ -31,3 +31,40 @@ try:
 except requests.RequestException as e:
     # Handle exceptions if the request fails
     print("Request failed:", e)
+
+
+
+
+
+
+
+
+# @app.route('/predict', methods=['POST'])
+# def predict():
+#     # label_encoders = []
+#     # for col in range(X.shape[1]):
+#     #     if isinstance(X[0, col], str):
+#     #         label_encoder = LabelEncoder()
+#     #         X[:, col] = label_encoder.fit_transform(X[:, col])
+#     #         label_encoders.append(label_encoder)
+
+    
+#     try:
+#         data = request.get_json()
+        
+#         # Perform preprocessing steps to match the model's requirements
+#         processed_data = np.array([data])  # Assuming 'data' is a single sample
+#         for col, label_encoder in enumerate(label_encoders):
+#             if isinstance(processed_data[0, col], str):
+#                 processed_data[0, col] = label_encoder.transform([processed_data[0, col]])
+        
+#         processed_data = sc.transform(processed_data)
+        
+#         # Perform prediction
+#         predictions = model.predict(processed_data)
+#         result = {'prediction': predictions.tolist()}  # Convert predictions to a list
+        
+#         return jsonify(result), 200
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+    

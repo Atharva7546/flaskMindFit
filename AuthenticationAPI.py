@@ -2,14 +2,30 @@ from flask import Flask, request, jsonify
 from flask_bcrypt import Bcrypt
 from flask_mysqldb import MySQL
 import re
-from flask import Flask, request, jsonify
+from PIL import Image
+import io
+import base64
 from tensorflow.keras.models import load_model
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+# from sklearn.preprocessing import StandardScaler, LabelEncoder
+import pickle
 
 import numpy as np
 
 model = load_model('model.h5')
-sc = StandardScaler()
+
+label_encoders=[]
+
+with open('encoders.pickle','rb') as f:
+    label_encoders=pickle.load(f)
+
+with open('scaler.pickle','rb') as f:
+    sc=pickle.load(f)
+    
+# for le in label_encoders:
+#     print(le.classes_)
+# exit()
+
+# sc = StandardScaler()
 app = Flask(__name__)
 
 bcrypt = Bcrypt(app)
@@ -147,7 +163,6 @@ def fetch_questions():
     except Exception as e:
         return {'message': f"An error occurred: {str(e)}"}, 500
 
-
 # Route to fetch and display questions and options
 @app.route('/fetch_questions', methods=['GET'])
 def display_questions():
@@ -157,36 +172,80 @@ def display_questions():
         return jsonify({'questions': questions}), 200
     else:
         return jsonify(questions), 500
-    
 
-# @app.route('/predict', methods=['POST'])
-# def predict():
-#     # label_encoders = []
-#     # for col in range(X.shape[1]):
-#     #     if isinstance(X[0, col], str):
-#     #         label_encoder = LabelEncoder()
-#     #         X[:, col] = label_encoder.fit_transform(X[:, col])
-#     #         label_encoders.append(label_encoder)
 
+def save_image_to_db(image_data):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("INSERT INTO images (image_data) VALUES (%s)", (image_data,))
+        mysql.connection.commit()
+        cur.close()
+        return True
+    except Exception as e:
+        return False
+
+# Function to fetch image data from the database
+def get_image_from_db(image_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT image_data FROM images WHERE id = %s", (image_id,))
+        image_data = cur.fetchone()
+        cur.close()
+        return image_data[0] if image_data else None
+    except Exception as e:
+        return None
+
+# Endpoint to upload an image to the database
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    if 'image_data' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+
+    image = request.files['image_data']
+    image_data = image.read()
+
+    if save_image_to_db(image_data):
+        return jsonify({'message': 'Image uploaded successfully'}), 201
+    else:
+        return jsonify({'error': 'Failed to upload image'}), 500
+
+# Endpoint to fetch and display the image from the database
+@app.route('/get_image/<int:image_id>', methods=['GET'])
+def get_image(image_id):
+    image_data = get_image_from_db(image_id)
+
+    # image = Image.open(io.BytesIO(image_data))
+    # image_data = image.resize((100, 100), Image)
+    # image.show()
+
+    if image_data:
+        # image_data_base64 = base64.b64encode(image_data).decode('utf-8')
+        # return jsonify({'image_data': image_data_base64}), 200
+        # return jsonify({'image_data': image_data}), 200
+        return image_data, 200, {'Content-Type': 'image/png'}
+        
+        
+    else:
+        return jsonify({'error': 'Image not found'}), 404
     
-#     try:
-#         data = request.get_json()
-        
-#         # Perform preprocessing steps to match the model's requirements
-#         processed_data = np.array([data])  # Assuming 'data' is a single sample
-#         for col, label_encoder in enumerate(label_encoders):
-#             if isinstance(processed_data[0, col], str):
-#                 processed_data[0, col] = label_encoder.transform([processed_data[0, col]])
-        
-#         processed_data = sc.transform(processed_data)
-        
-#         # Perform prediction
-#         predictions = model.predict(processed_data)
-#         result = {'prediction': predictions.tolist()}  # Convert predictions to a list
-        
-#         return jsonify(result), 200
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 500
+@app.route('/evaluate', methods=['POST'])
+def evaluate():
+    answers=request.get_json()
+    print(answers)
+    X=np.zeros((1,30))
+    i=0
+    for answer in answers:
+        print(answer, label_encoders[i].classes_)
+        X[0][i]=label_encoders[i].transform([answer])[0]
+        i+=1
+    # X=np.asarray(X)
+    print(X.shape)
+    print(X)
+    X=sc.transform(X)
+    y=model.predict(X)[0]
+    print(y)
+    return {"result":float(y) }
+    
     
 if __name__ == '__main__':
-    app.run(host='192.168.1.8')
+    app.run(host='192.168.22.72')
